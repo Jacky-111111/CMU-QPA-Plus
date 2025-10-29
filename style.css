@@ -1,0 +1,18 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 40px;
+}
+
+form {
+    margin-bottom: 20px;
+}
+
+button {
+    margin-top: 15px;
+    padding: 8px 20px;
+    cursor: pointer;
+}
+
+#result p {
+    font-size: 18px;
+}

@@ -1,12 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>CMU QPA Plus</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <h2>CMU QPA Plus</h2>
 
-<h1>CMU QPA Plus</h1>
-<p>A CMU QPA Calculator with additional features.</p>
+    <form id="qpaForm">
+        <h3>Course 1</h3>
+        Units: <input type="number" id="u1" min="0" required>
+        Grade:
+        <select id="g1">
+            <option>A</option><option>A-</option><option>B+</option>
+            <option>B</option><option>B-</option><option>C+</option>
+            <option>C</option><option>D+</option><option>D</option><option>R</option>
+        </select>
 
+        <h3>Course 2</h3>
+        Units: <input type="number" id="u2" min="0" required>
+        Grade:
+        <select id="g2">
+            <option>A</option><option>A-</option><option>B+</option>
+            <option>B</option><option>B-</option><option>C+</option>
+            <option>C</option><option>D+</option><option>D</option><option>R</option>
+        </select>
 
+        <button type="submit">Calculate</button>
+    </form>
 
+    <div id="result"></div>
 
-
-<p>From CMU: <a href="http://coursecatalog.web.cmu.edu/aboutcmu/undergraduateacademicregulations/#gradestextcontainer">How is QPA Calculated?</a></p>
-
-
-<p>Inspired by <a href="https://omarsinan.com/">Omar Sinan</a>'s <a href="https://omarsinan.github.io/projects/cmuqpa/">CMU QPA Calculator</a>.</p>
+    <script src="app.js"></script>
+</body>
+</html>
