@@ -50,7 +50,7 @@ function addNewCourse() {
     const newCourse = {
         id: Date.now(),
         code: '',
-        units: 12,
+        units: 9,
         grade: 'A',
         active: true
     };
@@ -469,7 +469,7 @@ function loadCoursesFromStorage() {
             courses = courses.map(course => ({
                 id: course.id || Date.now() + Math.random(),
                 code: course.code || '',
-                units: course.units || 12,
+                units: course.units || 9,
                 grade: course.grade || 'A',
                 active: course.active !== undefined ? course.active : true
             }));
@@ -479,14 +479,14 @@ function loadCoursesFromStorage() {
                 {
                     id: Date.now(),
                     code: 'Code',
-                    units: 12,
+                    units: 9,
                     grade: 'A',
                     active: true
                 },
                 {
                     id: Date.now() + 1,
                     code: '21-127',
-                    units: 12,
+                    units: 9,
                     grade: 'A',
                     active: true
                 }
@@ -499,14 +499,14 @@ function loadCoursesFromStorage() {
             {
                 id: Date.now(),
                 code: 'Code',
-                units: 12,
+                units: 9,
                 grade: 'A',
                 active: true
             },
             {
                 id: Date.now() + 1,
                 code: 'Code',
-                units: 12,
+                units: 9,
                 grade: 'A',
                 active: true
             }
