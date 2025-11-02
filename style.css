@@ -1,6 +1,6 @@
 /* CSS Variables */
 :root {
-    --cmu-red: #A00000;
+    --cmu-red: #A80C1E;
     --gold-accent: #C6A667;
     --white: #FFFFFF;
     --light-gray: #F5F5F5;
@@ -30,7 +30,7 @@ body {
 .header {
     background-color: var(--cmu-red);
     color: var(--white);
-    padding: 2rem 2rem 1rem;
+    padding: 1.5rem 2rem;
     position: relative;
 }
 
@@ -42,8 +42,8 @@ body {
 .header-top {
     display: flex;
     justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 1.5rem;
+    align-items: center;
+    margin-bottom: 0;
 }
 
 .title {
@@ -51,7 +51,7 @@ body {
     font-weight: bold;
     display: flex;
     align-items: baseline;
-    gap: 0.25rem;
+    gap: 0.75rem;
 }
 
 .title-main {
@@ -219,7 +219,7 @@ body {
 
 /* Course Rows */
 .courses-container {
-    
+    margin-bottom: 2rem;
 }
 
 .course-row {
@@ -252,47 +252,52 @@ body {
     justify-content: center;
     flex-shrink: 0;
     position: relative;
-    transition: all 0.2s;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 2px 4px rgba(74, 144, 226, 0.25);
+}
+
+.course-toggle:hover {
+    transform: scale(1.05);
+    box-shadow: 0 3px 6px rgba(74, 144, 226, 0.35);
 }
 
 .course-toggle.inactive {
     background-color: var(--white);
     border-color: var(--gray-border);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
-/* Checkmark for active state */
-.course-toggle::before,
-.course-toggle::after {
-    content: '';
-    position: absolute;
-    background-color: var(--white);
-    transition: opacity 0.2s, transform 0.2s;
+.course-toggle.inactive:hover {
+    border-color: var(--dark-gray);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
 }
 
-/* Checkmark left part */
+/* Beautiful checkmark for active state */
 .course-toggle::before {
-    width: 8px;
-    height: 3px;
-    transform: rotate(45deg);
-    left: 8px;
-    top: 12px;
-    border-radius: 1px;
-}
-
-/* Checkmark right part */
-.course-toggle::after {
-    width: 12px;
-    height: 3px;
-    transform: rotate(-45deg);
-    right: 7px;
-    top: 13px;
-    border-radius: 1px;
+    content: '✓';
+    position: absolute;
+    color: var(--white);
+    font-size: 1.1rem;
+    font-weight: bold;
+    line-height: 1;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    opacity: 1;
+    transform: scale(1);
+    top: 50%;
+    left: 50%;
+    margin-left: -0.5em;
+    margin-top: -0.5em;
 }
 
 /* Hide checkmark when inactive */
-.course-toggle.inactive::before,
-.course-toggle.inactive::after {
+.course-toggle.inactive::before {
     opacity: 0;
+    transform: scale(0.5);
+}
+
+/* Remove the ::after pseudo-element since we're using a single character */
+.course-toggle::after {
+    content: none;
 }
 
 /* Course Code Input */
@@ -305,6 +310,9 @@ body {
     width: 100px;
     text-align: center;
     font-weight: 500;
+    height: 2.75rem;
+    box-sizing: border-box;
+    line-height: 1.2;
 }
 
 .course-code:focus {
@@ -322,6 +330,8 @@ body {
     border: 1px solid var(--gray-border);
     border-radius: 6px;
     background-color: var(--light-gray);
+    height: 2.75rem;
+    box-sizing: border-box;
 }
 
 .units-btn {
@@ -345,10 +355,25 @@ body {
 }
 
 .units-value {
-    min-width: 60px;
+    width: 70px;
+    min-width: 70px;
+    max-width: 70px;
     text-align: center;
     font-weight: 500;
     font-size: 0.95rem;
+    border: none;
+    background-color: transparent;
+    padding: 0;
+    outline: none;
+    cursor: text;
+    box-sizing: border-box;
+}
+
+.units-value:focus {
+    background-color: var(--white);
+    border-radius: 4px;
+    padding: 0.125rem 0.25rem;
+    box-sizing: border-box;
 }
 
 /* Grade Dropdown */
@@ -366,6 +391,9 @@ body {
     background-position: right 0.5rem center;
     background-size: 12px;
     min-width: 80px;
+    height: 2.75rem;
+    box-sizing: border-box;
+    line-height: 1.2;
 }
 
 .grade-select:focus {

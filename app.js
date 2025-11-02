@@ -100,7 +100,17 @@ function updateCourseUnits(courseId, delta) {
     if (course) {
         const newUnits = Math.max(0, course.units + delta);
         course.units = newUnits;
-        renderCourses();
+        // Update the input field directly if it exists and is not focused
+        const row = document.querySelector(`[data-course-id="${courseId}"]`);
+        if (row) {
+            const unitsInput = row.querySelector('.units-value');
+            if (unitsInput && document.activeElement !== unitsInput) {
+                unitsInput.value = `${newUnits} Units`;
+            }
+        } else {
+            // If row not found, re-render
+            renderCourses();
+        }
         saveCoursesToStorage();
         calculateQPA();
     }
@@ -147,7 +157,7 @@ function createCourseRow(course, index) {
     codeInput.type = 'text';
     codeInput.className = 'course-code';
     codeInput.value = course.code || '';
-    codeInput.placeholder = '15-112';
+    codeInput.placeholder = 'Code';
     codeInput.addEventListener('input', (e) => updateCourseCode(course.id, e.target.value));
     codeInput.addEventListener('blur', () => renderCourses());
     row.appendChild(codeInput);
@@ -162,9 +172,47 @@ function createCourseRow(course, index) {
     minusBtn.addEventListener('click', () => updateCourseUnits(course.id, -1));
     unitsControl.appendChild(minusBtn);
 
-    const unitsValue = document.createElement('span');
+    const unitsValue = document.createElement('input');
+    unitsValue.type = 'text';
     unitsValue.className = 'units-value';
-    unitsValue.textContent = `${course.units} Units`;
+    unitsValue.value = `${course.units} Units`;
+    unitsValue.readOnly = false;
+    
+    // When focused, show only the number
+    unitsValue.addEventListener('focus', (e) => {
+        e.target.value = course.units.toString();
+        e.target.select();
+    });
+    
+    // When input changes, validate and update
+    unitsValue.addEventListener('input', (e) => {
+        let value = e.target.value.replace(/\D/g, ''); // Remove non-digits
+        if (value === '') value = '0';
+        e.target.value = value;
+    });
+    
+    // When blur, format with "Units" suffix
+    unitsValue.addEventListener('blur', (e) => {
+        let value = parseInt(e.target.value) || 0;
+        value = Math.max(0, value); // Ensure non-negative
+        e.target.value = `${value} Units`;
+        
+        // Update course units if changed
+        if (value !== course.units) {
+            const oldUnits = course.units;
+            course.units = value;
+            saveCoursesToStorage();
+            calculateQPA();
+        }
+    });
+    
+    // Handle Enter key
+    unitsValue.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.target.blur();
+        }
+    });
+    
     unitsControl.appendChild(unitsValue);
 
     const plusBtn = document.createElement('button');
@@ -430,7 +478,7 @@ function loadCoursesFromStorage() {
             courses = [
                 {
                     id: Date.now(),
-                    code: '15-112',
+                    code: 'Code',
                     units: 12,
                     grade: 'A',
                     active: true
@@ -450,14 +498,14 @@ function loadCoursesFromStorage() {
         courses = [
             {
                 id: Date.now(),
-                code: '15-112',
+                code: 'Code',
                 units: 12,
                 grade: 'A',
                 active: true
             },
             {
                 id: Date.now() + 1,
-                code: '21-127',
+                code: 'Code',
                 units: 12,
                 grade: 'A',
                 active: true
