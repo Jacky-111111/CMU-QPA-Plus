@@ -2,35 +2,83 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CMU QPA Plus</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <h2>CMU QPA Plus</h2>
+    <!-- Header Section -->
+    <header class="header">
+        <div class="header-content">
+            <!-- Title and Navigation -->
+            <div class="header-top">
+                <h1 class="title">
+                    <span class="title-main">CMU QPA</span>
+                    <span class="title-accent">Plus</span>
+                </h1>
+                <nav class="nav-menu">
+                    <button class="nav-link" id="methodBtn">Method</button>
+                    <span class="nav-separator">|</span>
+                    <button class="nav-link" id="resourcesBtn">Resources</button>
+                    <span class="info-icon" id="resourcesInfo">ℹ️</span>
+                </nav>
+            </div>
 
-    <form id="qpaForm">
-        <h3>Course 1</h3>
-        Units: <input type="number" id="u1" min="0" required>
-        Grade:
-        <select id="g1">
-            <option>A</option><option>A-</option><option>B+</option>
-            <option>B</option><option>B-</option><option>C+</option>
-            <option>C</option><option>D+</option><option>D</option><option>R</option>
-        </select>
+            <!-- Dropdown Panels -->
+            <div class="dropdown-panel" id="methodPanel">
+                <div class="panel-content">
+                    <ul class="info-list">
+                        <li>This is not an official tool presented by CMU — for reference only.</li>
+                        <li>QPA, or Quality Point Average, is a calculation that measures a student's academic achievement by averaging the quality points earned per credit hour.</li>
+                        <li>To calculate a Carnegie Mellon University QPA, multiply the credit hours for each course by the quality point value for its grade to get the quality points for that course. Then, add up the total quality points from all courses and divide by the total number of credit hours attempted in those courses.</li>
+                        <li>The formula is: QPA = (Total Quality Points) / (Total Credit Hours)</li>
+                    </ul>
+                </div>
+            </div>
 
-        <h3>Course 2</h3>
-        Units: <input type="number" id="u2" min="0" required>
-        Grade:
-        <select id="g2">
-            <option>A</option><option>A-</option><option>B+</option>
-            <option>B</option><option>B-</option><option>C+</option>
-            <option>C</option><option>D+</option><option>D</option><option>R</option>
-        </select>
+            <div class="dropdown-panel" id="resourcesPanel">
+                <div class="panel-content">
+                    <ul class="info-list">
+                        <li>To view your official grades, QPA, enrollment status, and more, visit <a href="https://www.cmu.edu/hub/sio/about.html" target="_blank" rel="noopener noreferrer">SIO</a>.</li>
+                        <li>To plan your courses and academic path, use Stellic.</li>
+                        <li>If you're struggling with stress or emotional concerns, CaPS can help. For urgent situations, call CMUPD: 412-268-2323.</li>
+                        <li>This tool is created by Jack Yu, inspired by Omar Sinan's CMU QPA Calculator.</li>
+                        <li>For questions or feedback about this tool, contact: jacky2@andrew.cmu.edu</li>
+                    </ul>
+                </div>
+            </div>
 
-        <button type="submit">Calculate</button>
-    </form>
+            <!-- Triangle Separator -->
+            <div class="triangle-separator"></div>
+        </div>
+    </header>
 
-    <div id="result"></div>
+    <!-- Main Calculator Section -->
+    <main class="main-content">
+        <!-- Summary Statistics -->
+        <div class="summary-stats">
+            <div class="stat-item">
+                <span class="stat-label">QPA:</span>
+                <span class="stat-value" id="qpaValue">4.0</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">GPA:</span>
+                <span class="stat-value" id="gpaValue">4.0</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">Total Units:</span>
+                <span class="stat-value" id="totalUnitsValue">12</span>
+            </div>
+        </div>
+
+        <!-- Course Rows Container -->
+        <div class="courses-container" id="coursesContainer">
+            <!-- Course rows will be dynamically generated here -->
+        </div>
+
+        <!-- Add Course Button -->
+        <button class="add-button" id="addCourseBtn">ADD</button>
+    </main>
 
     <script src="app.js"></script>
 </body>
