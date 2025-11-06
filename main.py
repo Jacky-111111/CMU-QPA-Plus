@@ -33,3 +33,7 @@ def calculate_qpa(req: QpaRequest):
     result = calculateQPA(req.grades)  # 直接给你的函数
 
     return result
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("main:app", host="0.0.0.0", port=8000)
