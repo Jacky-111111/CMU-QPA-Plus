@@ -23,15 +23,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ✅ 提供静态文件（比如 style.css）
-app.mount("/static", StaticFiles(directory="."), name="static")
+# 修改后，托管整个目录
+app.mount("/", StaticFiles(directory=".", html=True), name="static")
 
-# ✅ 首页（index.html）
-@app.get("/", response_class=HTMLResponse)
-def read_root():
-    index_path = os.path.join(os.path.dirname(__file__), "index.html")
-    with open(index_path, "r", encoding="utf-8") as f:
-        return f.read()
+# # ✅ 首页（index.html）
+# @app.get("/", response_class=HTMLResponse)
+# def read_root():
+#     index_path = os.path.join(os.path.dirname(__file__), "index.html")
+#     with open(index_path, "r", encoding="utf-8") as f:
+#         return f.read()
 
 # ✅ 健康检查
 @app.get("/healthz")
