@@ -478,15 +478,15 @@ function loadCoursesFromStorage() {
             courses = [
                 {
                     id: Date.now(),
-                    code: 'Code',
+                    code: '76-101',
                     units: 9,
                     grade: 'A',
                     active: true
                 },
                 {
                     id: Date.now() + 1,
-                    code: '21-127',
-                    units: 9,
+                    code: '15-112',
+                    units: 12,
                     grade: 'A',
                     active: true
                 }
