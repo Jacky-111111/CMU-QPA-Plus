@@ -18,12 +18,21 @@
     box-sizing: border-box;
 }
 
+html {
+    overflow-x: hidden;
+    width: 100%;
+    max-width: 100%;
+}
+
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     background-color: var(--white);
     color: var(--dark-gray);
     line-height: 1.6;
     overflow-x: hidden;
+    width: 100%;
+    max-width: 100%;
+    position: relative;
 }
 
 /* Header Section */
@@ -37,6 +46,8 @@ body {
 .header-content {
     max-width: 1200px;
     margin: 0 auto;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .header-top {
@@ -195,6 +206,8 @@ body {
     display: flex;
     flex-direction: column;
     align-items: center;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 /* Summary Statistics */
@@ -230,6 +243,12 @@ body {
 /* Course Rows */
 .courses-container {
     margin-bottom: 2rem;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 
 .course-row {
@@ -241,7 +260,10 @@ body {
     background-color: var(--white);
     border-radius: 8px;
     transition: transform 0.2s, box-shadow 0.2s;
-    width: 100%;
+    width: auto;
+    max-width: 100%;
+    box-sizing: border-box;
+    min-width: 0;
 }
 
 .course-row.dragging {
@@ -508,12 +530,23 @@ body {
         padding: 1.5rem 1rem 0.75rem;
     }
 
+    .header-top {
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
     .title {
-        font-size: 2rem;
+        font-size: 1.75rem;
     }
 
     .nav-menu {
-        font-size: 0.95rem;
+        font-size: 0.9rem;
+        gap: 0.5rem;
+    }
+
+    .nav-link {
+        font-size: 0.9rem;
+        padding: 0.25rem 0.4rem;
     }
 
     .main-content {
@@ -524,14 +557,177 @@ body {
         flex-direction: column;
         align-items: flex-start;
         gap: 1rem;
+        width: 100%;
+    }
+
+    .courses-container {
+        align-items: stretch;
     }
 
     .course-row {
-        flex-wrap: wrap;
+        width: 100%;
+        flex-wrap: nowrap;
         gap: 0.5rem;
+        overflow-x: auto;
+        overflow-y: visible;
+        -webkit-overflow-scrolling: touch;
+        padding: 0.75rem 0.5rem;
+        min-width: 0;
+    }
+
+    .course-row::-webkit-scrollbar {
+        display: none;
+    }
+
+    .course-row {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+    }
+
+    .course-toggle {
+        width: 2.25rem;
+        height: 2.25rem;
+        flex-shrink: 0;
     }
 
     .course-code {
-        width: 100%;
+        width: 90px;
+        min-width: 90px;
+        max-width: 90px;
+        font-size: 0.85rem;
+        padding: 0.5rem 0.5rem;
+    }
+
+    .units-control {
+        min-width: 100px;
+        flex-shrink: 0;
+        padding: 0.5rem 0.5rem;
+        gap: 0.4rem;
+    }
+
+    .units-btn {
+        width: 22px;
+        height: 22px;
+        font-size: 1rem;
+    }
+
+    .units-value {
+        width: 60px;
+        min-width: 60px;
+        max-width: 60px;
+        font-size: 0.85rem;
+    }
+
+    .grade-select {
+        min-width: 70px;
+        flex-shrink: 0;
+        font-size: 0.85rem;
+        padding: 0 1.75rem 0 0.75rem;
+        background-position: right 0.5rem center;
+    }
+
+    .action-btn {
+        width: 2.25rem;
+        height: 2.25rem;
+        flex-shrink: 0;
+    }
+
+    .delete-btn::before {
+        font-size: 0.9rem;
+    }
+
+    .drag-handle::before {
+        font-size: 1.3rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .header {
+        padding: 1rem 0.75rem 0.5rem;
+    }
+
+    .title {
+        font-size: 1.5rem;
+    }
+
+    .nav-menu {
+        font-size: 0.85rem;
+        gap: 0.4rem;
+    }
+
+    .nav-link {
+        font-size: 0.85rem;
+        padding: 0.2rem 0.3rem;
+    }
+
+    .main-content {
+        padding: 1rem 0.75rem;
+    }
+
+    .summary-stats {
+        gap: 0.75rem;
+        padding-bottom: 1rem;
+    }
+
+    .stat-label,
+    .stat-value {
+        font-size: 1rem;
+    }
+
+    .course-row {
+        gap: 0.4rem;
+        padding: 0.75rem 0.4rem;
+    }
+
+    .course-toggle {
+        width: 2rem;
+        height: 2rem;
+    }
+
+    .course-toggle::before {
+        font-size: 1rem;
+    }
+
+    .course-code {
+        width: 80px;
+        min-width: 80px;
+        max-width: 80px;
+        font-size: 0.8rem;
+        padding: 0.45rem 0.4rem;
+    }
+
+    .units-control {
+        min-width: 90px;
+        padding: 0.45rem 0.4rem;
+        gap: 0.3rem;
+    }
+
+    .units-btn {
+        width: 20px;
+        height: 20px;
+        font-size: 0.9rem;
+    }
+
+    .units-value {
+        width: 55px;
+        min-width: 55px;
+        max-width: 55px;
+        font-size: 0.8rem;
+    }
+
+    .grade-select {
+        min-width: 65px;
+        font-size: 0.8rem;
+        padding: 0 1.5rem 0 0.6rem;
+    }
+
+    .action-btn {
+        width: 2rem;
+        height: 2rem;
+    }
+
+    .add-button {
+        padding: 0.65rem 1.5rem;
+        font-size: 0.95rem;
     }
 }
