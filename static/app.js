@@ -428,15 +428,22 @@ function calculateQPALocal(activeCourses) {
 
     let totalQualityPoints = 0;
     let totalUnits = 0;
+    let totalPoints = 0;
 
     activeCourses.forEach(course => {
-        const qualityPoints = gradePoints[course.grade] || 0;
-        totalQualityPoints += qualityPoints * course.units;
+        const points = gradePoints[course.grade] || 0;
+        const qualityPoints = points * course.units;
+        
+        totalQualityPoints += qualityPoints;
         totalUnits += course.units;
+        totalPoints += points;
     });
 
+    // QPA considers credit hours (quality points weighted by units)
     const qpa = totalUnits > 0 ? totalQualityPoints / totalUnits : 0;
-    const gpa = qpa; // For CMU, QPA and GPA are the same
+    
+    // GPA is simple average of grade points (not weighted by units)
+    const gpa = activeCourses.length > 0 ? totalPoints / activeCourses.length : 0;
 
     return {
         qpa: parseFloat(qpa.toFixed(2)),
