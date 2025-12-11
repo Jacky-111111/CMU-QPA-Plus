@@ -184,6 +184,17 @@ body {
     text-decoration: underline;
 }
 
+.math-formula {
+    font-family: 'Cambria Math', 'Latin Modern Math', 'STIX Two Math', 'Computer Modern', 'Times New Roman', serif;
+    font-style: italic;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    display: inline-block;
+    padding: 0.1em 0.2em;
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+}
+
 /* Triangle Separator */
 .triangle-separator {
     width: 0;
