@@ -1,5 +1,6 @@
 // API Configuration
 const API_URL = "http://127.0.0.1:8000/calculate-qpa";
+const COURSE_INFO_API_URL = "http://127.0.0.1:8000/course-info";
 
 // Application State
 let courses = [];
@@ -18,10 +19,12 @@ const gpaValue = document.getElementById('gpaValue');
 const totalUnitsValue = document.getElementById('totalUnitsValue');
 
 // Initialize Application
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     loadCoursesFromStorage();
     renderCourses();
     setupEventListeners();
+    // Automatically fetch units for existing course codes
+    await fetchUnitsForAllCourses();
     calculateQPA();
 });
 
@@ -95,6 +98,144 @@ function updateCourseCode(courseId, newCode) {
     }
 }
 
+// Normalize course code: convert formats like "76-101" or "76101" to "76101"
+function normalizeCourseCode(code) {
+    if (!code) return null;
+    // Remove hyphens and spaces, keep only digits
+    const normalized = code.replace(/[-\s]/g, '');
+    // Check if it's exactly 5 digits
+    if (/^\d{5}$/.test(normalized)) {
+        return normalized;
+    }
+    return null;
+}
+
+// Fetch course units from API
+async function fetchCourseUnits(normalizedCode) {
+    try {
+        console.log(`Fetching course units for: ${normalizedCode}`);
+        const url = `${COURSE_INFO_API_URL}/${normalizedCode}`;
+        console.log(`API URL: ${url}`);
+        
+        const response = await fetch(url);
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error(`API error: ${response.status} ${response.statusText}`, errorText);
+            
+            if (response.status === 404) {
+                console.log(`Course ${normalizedCode} not found in CMU Course API`);
+            } else if (response.status === 500) {
+                console.error(`Server error: ${errorText}`);
+            }
+            return null;
+        }
+        
+        const data = await response.json();
+        console.log(`Course data received:`, data);
+        const units = data.units;
+        
+        // Return units only if it's a valid number
+        if (units !== null && units !== undefined && typeof units === 'number' && units > 0) {
+            console.log(`Found units: ${units}`);
+            return units;
+        } else {
+            console.log(`Units is null or invalid: ${units} (type: ${typeof units})`);
+            return null;
+        }
+        
+    } catch (error) {
+        console.error('Error fetching course units:', error);
+        console.error('Error details:', error.message, error.stack);
+        return null;
+    }
+}
+
+// Fetch units for all courses that have valid course codes
+async function fetchUnitsForAllCourses() {
+    console.log('Fetching units for all existing courses...');
+    const promises = courses.map(async (course) => {
+        if (!course.code || course.code.trim() === '') {
+            console.log(`Skipping course ${course.id}: no code`);
+            return;
+        }
+        
+        const normalizedCode = normalizeCourseCode(course.code);
+        if (normalizedCode) {
+            console.log(`Fetching units for course ${course.code} (normalized: ${normalizedCode})`);
+            const units = await fetchCourseUnits(normalizedCode);
+            if (units !== null && units !== undefined && typeof units === 'number' && units > 0) {
+                console.log(`✓ Updating course ${course.code} units from ${course.units} to ${units}`);
+                course.units = units;
+            } else {
+                console.log(`✗ Could not fetch units for course ${course.code}, keeping current value: ${course.units}`);
+            }
+        } else {
+            console.log(`Course code "${course.code}" is not a valid format (need 5 digits)`);
+        }
+    });
+    
+    await Promise.all(promises);
+    saveCoursesToStorage();
+    renderCourses();
+    calculateQPA();
+    console.log('Finished fetching units for all courses');
+}
+
+// Update course code and fetch units if valid course code
+async function updateCourseCodeAndFetchUnits(courseId, newCode) {
+    const course = courses.find(c => c.id === courseId);
+    if (!course) {
+        console.error(`Course not found: ${courseId}`);
+        return;
+    }
+    
+    console.log(`Updating course code: ${newCode} for course ${courseId}`);
+    
+    // Update the code
+    course.code = newCode;
+    saveCoursesToStorage();
+    
+    // Check if it's a valid course code format
+    const normalizedCode = normalizeCourseCode(newCode);
+    if (normalizedCode) {
+        console.log(`Valid course code format detected: ${normalizedCode}`);
+        // Format as XX-XXX for display
+        const formattedCode = `${normalizedCode.substring(0, 2)}-${normalizedCode.substring(2)}`;
+        course.code = formattedCode;
+        saveCoursesToStorage();
+        
+        // Fetch units from API
+        const units = await fetchCourseUnits(normalizedCode);
+        console.log(`API returned units: ${units}`);
+        if (units !== null && units !== undefined && typeof units === 'number' && units > 0) {
+            // Update units if API returned a valid value
+            console.log(`Updating units from ${course.units} to ${units}`);
+            course.units = units;
+            saveCoursesToStorage();
+            calculateQPA();
+            // Re-render to show updated units
+            renderCourses();
+        } else {
+            console.log(`Keeping current units: ${course.units} (API returned invalid units)`);
+            // If course not found or units is null, keep current units
+            renderCourses();
+        }
+    } else {
+        console.log(`Invalid course code format: ${newCode}`);
+        // Not a valid course code format
+        if (!newCode || newCode.trim() === '') {
+            // Reset to default 9 units if code is empty
+            console.log(`Resetting to default 9 units (empty code)`);
+            course.units = 9;
+            saveCoursesToStorage();
+            calculateQPA();
+        }
+        // If code is not empty but not a valid format, keep current units unchanged
+        renderCourses();
+    }
+}
+
 function updateCourseUnits(courseId, delta) {
     const course = courses.find(c => c.id === courseId);
     if (course) {
@@ -159,7 +300,21 @@ function createCourseRow(course, index) {
     codeInput.value = course.code || '';
     codeInput.placeholder = 'Code';
     codeInput.addEventListener('input', (e) => updateCourseCode(course.id, e.target.value));
-    codeInput.addEventListener('blur', () => renderCourses());
+    codeInput.addEventListener('blur', async (e) => {
+        const currentValue = e.target.value.trim();
+        console.log(`Blur event triggered with value: "${currentValue}"`);
+        await updateCourseCodeAndFetchUnits(course.id, currentValue);
+    });
+    // Also handle Enter key to trigger the same logic
+    codeInput.addEventListener('keydown', async (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            const currentValue = e.target.value.trim();
+            console.log(`Enter key pressed with value: "${currentValue}"`);
+            await updateCourseCodeAndFetchUnits(course.id, currentValue);
+            e.target.blur();
+        }
+    });
     row.appendChild(codeInput);
 
     // Units Control
