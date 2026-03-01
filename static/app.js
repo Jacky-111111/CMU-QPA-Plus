@@ -1,6 +1,6 @@
 // API Configuration
 const API_URL = "http://127.0.0.1:8000/calculate-qpa";
-const COURSE_UNITS_API_BASE = "http://127.0.0.1:8000/course-units";
+const SCOTTYLABS_COURSE_API_BASE = "https://course-tools.apis.scottylabs.org/course";
 
 // Application State
 let courses = [];
@@ -203,7 +203,8 @@ function createCourseRow(course, index) {
 
                 const rowEl = document.querySelector(`[data-course-id="${course.id}"]`);
                 const unitsInput = rowEl ? rowEl.querySelector('.units-value') : null;
-                if (unitsInput && document.activeElement !== unitsInput) {
+                // Always refresh visible units display after auto-fill.
+                if (unitsInput) {
                     unitsInput.value = `${units} Units`;
                 }
 
@@ -547,22 +548,47 @@ async function fetchUnitsForCourse(courseId) {
         return courseUnitCache.get(courseId);
     }
 
-    const url = `${COURSE_UNITS_API_BASE}/${courseId}`;
-    console.log("[units] url=", url);
-    const response = await fetch(url, { method: 'GET' });
-    console.log("[units] status=", response.status);
-    if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
+    // Try normalized first (15-122), then compact form (15122).
+    const compact = courseId.replace('-', '');
+    const candidates = compact === courseId ? [courseId] : [courseId, compact];
+    let lastError = 'No response';
+
+    for (const candidate of candidates) {
+        const url = `${SCOTTYLABS_COURSE_API_BASE}/${candidate}`;
+        console.log("[units] url=", url);
+
+        const response = await fetch(url, {
+            method: 'GET',
+            mode: 'cors',
+            headers: {
+                'Accept': 'application/json'
+            }
+        });
+        console.log("[units] status=", response.status);
+
+        if (!response.ok) {
+            lastError = `HTTP ${response.status} for ${candidate}`;
+            continue;
+        }
+
+        const data = await response.json();
+        let units = data && data.units;
+        if (typeof units === 'string') {
+            const parsed = parseFloat(units);
+            units = Number.isFinite(parsed) ? parsed : null;
+        }
+
+        if (typeof units !== 'number') {
+            lastError = `Missing numeric units for ${candidate}`;
+            continue;
+        }
+
+        console.log("[units] units=", units);
+        courseUnitCache.set(courseId, units);
+        return units;
     }
 
-    const data = await response.json();
-    const units = data && data.units;
-    if (typeof units !== 'number') {
-        throw new Error('Missing numeric units');
-    }
-    console.log("[units] units=", units);
-    courseUnitCache.set(courseId, units);
-    return units;
+    throw new Error(lastError);
 }
 
 // LocalStorage Functions

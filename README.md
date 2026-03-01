@@ -13,6 +13,7 @@
 
 - 🎓 **Accurate QPA Calculation** - Follows CMU's official QPA calculation method
 - 📊 **Dual Metrics** - Calculates both QPA (Quality Point Average) and GPA (Grade Point Average)
+- 📚 **Course Units Auto-fill** - Enter a CMU course code (e.g. `15122` / `15-122`) to auto-fill units
 - 🎨 **Modern UI** - Clean, responsive interface with drag-and-drop course management
 - 💾 **Local Storage** - Automatically saves your courses in the browser
 - ⚡ **Fast Performance** - Real-time calculations with instant feedback
@@ -157,6 +158,32 @@ print(f"QPA: {result['QPA']}")
 print(f"GPA: {result['GPA']}")
 print(f"Total Units: {result['totalUnits']}")
 ```
+
+### Course Units Auto-fill (ScottyLabs Workaround)
+
+We initially attempted to use the older ScottyLabs course API path (`api.cmucourses.com`) for unit lookup.  
+In real-world testing, that path was unstable in this environment (SSL certificate verification issues and repeated 404 responses), so we switched to a more reliable endpoint strategy.
+
+Current implementation uses:
+
+- `https://course-tools.apis.scottylabs.org/course/<COURSE_ID>`
+
+Behavior:
+
+- Frontend normalizes user input:
+  - `15122` -> `15-122`
+  - `15 122` -> `15-122`
+  - `15-122` -> `15-122`
+- Lookup tries both:
+  - `15-122`
+  - `15122` (fallback)
+- If course data is found, `units` is parsed (including string values like `"12.0"`) and applied immediately to that course row.
+- Units remain manually editable if lookup fails.
+
+Notes:
+
+- This lookup is intended for convenience and may depend on third-party API availability.
+- The app still computes QPA/GPA locally as a fallback if backend calculation is unavailable.
 
 ## 📐 QPA Calculation Formula
 
