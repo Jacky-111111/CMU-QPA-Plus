@@ -162,7 +162,25 @@ function createCourseRow(course, index) {
     codeInput.className = 'course-code';
     codeInput.value = course.code || '';
     codeInput.placeholder = 'Code';
-    codeInput.addEventListener('input', (e) => updateCourseCode(course.id, e.target.value));
+    codeInput.addEventListener('input', (e) => {
+        const raw = e.target.value;
+        updateCourseCode(course.id, raw);
+
+        // Query immediately when user likely completed typing:
+        // - 15122 (5 chars)
+        // - 15-122 (6 chars)
+        if (raw.length !== 5 && raw.length !== 6) {
+            return;
+        }
+
+        const { normalized } = normalizeCourseCode(raw);
+        if (normalized === null) {
+            return;
+        }
+
+        // Immediate lookup + overwrite (blur/Enter still serve as fallback).
+        runCourseLookup();
+    });
 
     const runCourseLookup = async () => {
         const raw = codeInput.value;
