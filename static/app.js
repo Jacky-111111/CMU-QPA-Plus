@@ -1,10 +1,14 @@
 // API Configuration
 const API_URL = "http://127.0.0.1:8000/calculate-qpa";
+const COURSE_UNITS_API_BASE = "http://127.0.0.1:8000/course-units";
 
 // Application State
 let courses = [];
 let draggedElement = null;
 let draggedIndex = null;
+const courseUnitCache = new Map(); // "15-122" -> 10
+const inFlightLookupByRow = new Map(); // rowCourseId -> normalized course id
+const recentLookupByRow = new Map(); // rowCourseId -> { courseId, ts }
 
 // DOM Elements
 const coursesContainer = document.getElementById('coursesContainer');
@@ -159,7 +163,70 @@ function createCourseRow(course, index) {
     codeInput.value = course.code || '';
     codeInput.placeholder = 'Code';
     codeInput.addEventListener('input', (e) => updateCourseCode(course.id, e.target.value));
-    codeInput.addEventListener('blur', () => renderCourses());
+
+    const runCourseLookup = async () => {
+        const raw = codeInput.value;
+        const { normalized, display } = normalizeCourseCode(raw);
+        console.log("[units] raw=", raw, "normalized=", normalized);
+
+        if (normalized === null) {
+            return;
+        }
+
+        // Display normalization.
+        if (codeInput.value !== display) {
+            codeInput.value = display;
+        }
+        updateCourseCode(course.id, display);
+
+        // Prevent Enter + blur duplicate requests within 500ms.
+        const now = Date.now();
+        const prev = recentLookupByRow.get(course.id);
+        if (prev && prev.courseId === normalized && now - prev.ts < 500) {
+            return;
+        }
+        recentLookupByRow.set(course.id, { courseId: normalized, ts: now });
+
+        // Prevent concurrent duplicate lookup on same row+course.
+        if (inFlightLookupByRow.get(course.id) === normalized) {
+            return;
+        }
+
+        codeInput.classList.add('loading');
+        inFlightLookupByRow.set(course.id, normalized);
+
+        try {
+            const units = await fetchUnitsForCourse(normalized);
+            if (typeof units === 'number') {
+                course.units = units;
+                saveCoursesToStorage();
+
+                const rowEl = document.querySelector(`[data-course-id="${course.id}"]`);
+                const unitsInput = rowEl ? rowEl.querySelector('.units-value') : null;
+                if (unitsInput && document.activeElement !== unitsInput) {
+                    unitsInput.value = `${units} Units`;
+                }
+
+                calculateQPA();
+            }
+        } catch (error) {
+            // Keep manual units workflow fully functional on failure.
+            console.warn("[units] lookup failed:", error.message);
+        } finally {
+            codeInput.classList.remove('loading');
+            if (inFlightLookupByRow.get(course.id) === normalized) {
+                inFlightLookupByRow.delete(course.id);
+            }
+        }
+    };
+
+    codeInput.addEventListener('blur', runCourseLookup);
+    codeInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            runCourseLookup();
+        }
+    });
     row.appendChild(codeInput);
 
     // Units Control
@@ -456,6 +523,46 @@ function updateDisplay(qpa, gpa, totalUnits) {
     qpaValue.textContent = qpa.toFixed(2);
     gpaValue.textContent = gpa.toFixed(2);
     totalUnitsValue.textContent = totalUnits;
+}
+
+function normalizeCourseCode(rawInput) {
+    const trimmed = (rawInput || '').trim();
+
+    if (/^\d{5}$/.test(trimmed)) {
+        const normalized = `${trimmed.slice(0, 2)}-${trimmed.slice(2)}`;
+        return { normalized, display: normalized };
+    }
+
+    const match = trimmed.match(/^(\d{2})[-\s]?(\d{3})$/);
+    if (match) {
+        const normalized = `${match[1]}-${match[2]}`;
+        return { normalized, display: normalized };
+    }
+
+    return { normalized: null, display: trimmed };
+}
+
+async function fetchUnitsForCourse(courseId) {
+    if (courseUnitCache.has(courseId)) {
+        return courseUnitCache.get(courseId);
+    }
+
+    const url = `${COURSE_UNITS_API_BASE}/${courseId}`;
+    console.log("[units] url=", url);
+    const response = await fetch(url, { method: 'GET' });
+    console.log("[units] status=", response.status);
+    if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+    }
+
+    const data = await response.json();
+    const units = data && data.units;
+    if (typeof units !== 'number') {
+        throw new Error('Missing numeric units');
+    }
+    console.log("[units] units=", units);
+    courseUnitCache.set(courseId, units);
+    return units;
 }
 
 // LocalStorage Functions
