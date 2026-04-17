@@ -9,6 +9,7 @@ let draggedIndex = null;
 const courseUnitCache = new Map(); // "15-122" -> 10
 const inFlightLookupByRow = new Map(); // rowCourseId -> normalized course id
 const recentLookupByRow = new Map(); // rowCourseId -> { courseId, ts }
+const suppressNextBlurHighlightByRow = new Map(); // rowCourseId -> boolean
 
 // DOM Elements
 const coursesContainer = document.getElementById('coursesContainer');
@@ -179,10 +180,10 @@ function createCourseRow(course, index) {
         }
 
         // Immediate lookup + overwrite (blur/Enter still serve as fallback).
-        runCourseLookup();
+        runCourseLookup('input');
     });
 
-    const runCourseLookup = async () => {
+    const runCourseLookup = async (triggerSource = 'blur') => {
         const raw = codeInput.value;
         const { normalized, display } = normalizeCourseCode(raw);
         console.log("[units] raw=", raw, "normalized=", normalized);
@@ -221,9 +222,26 @@ function createCourseRow(course, index) {
 
                 const rowEl = document.querySelector(`[data-course-id="${course.id}"]`);
                 const unitsInput = rowEl ? rowEl.querySelector('.units-value') : null;
+                const unitsControl = rowEl ? rowEl.querySelector('.units-control') : null;
                 // Always refresh visible units display after auto-fill.
                 if (unitsInput) {
                     unitsInput.value = `${units} Units`;
+                }
+                if (unitsControl) {
+                    const shouldSuppressBlurHighlight =
+                        triggerSource === 'blur' && suppressNextBlurHighlightByRow.get(course.id) === true;
+
+                    if (shouldSuppressBlurHighlight) {
+                        // Consume one blur suppression only once.
+                        suppressNextBlurHighlightByRow.delete(course.id);
+                    } else {
+                        triggerUnitsAutoUpdateHighlight(unitsControl);
+                    }
+                }
+
+                // If input-triggered lookup succeeded, suppress the immediate next blur highlight.
+                if (triggerSource === 'input') {
+                    suppressNextBlurHighlightByRow.set(course.id, true);
                 }
 
                 calculateQPA();
@@ -239,11 +257,11 @@ function createCourseRow(course, index) {
         }
     };
 
-    codeInput.addEventListener('blur', runCourseLookup);
+    codeInput.addEventListener('blur', () => runCourseLookup('blur'));
     codeInput.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') {
             e.preventDefault();
-            runCourseLookup();
+            runCourseLookup('enter');
         }
     });
     row.appendChild(codeInput);
@@ -542,6 +560,19 @@ function updateDisplay(qpa, gpa, totalUnits) {
     qpaValue.textContent = qpa.toFixed(2);
     gpaValue.textContent = gpa.toFixed(2);
     totalUnitsValue.textContent = totalUnits;
+}
+
+function triggerUnitsAutoUpdateHighlight(unitsControl) {
+    const highlightClass = 'auto-updated';
+
+    // Remove then force reflow so repeated updates restart animation.
+    unitsControl.classList.remove(highlightClass);
+    void unitsControl.offsetWidth;
+    unitsControl.classList.add(highlightClass);
+
+    setTimeout(() => {
+        unitsControl.classList.remove(highlightClass);
+    }, 2300);
 }
 
 function normalizeCourseCode(rawInput) {

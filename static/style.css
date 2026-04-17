@@ -419,6 +419,22 @@ body {
     box-sizing: border-box;
 }
 
+/* Highlight whole units control when system auto-updates units */
+.units-control.auto-updated {
+    animation: units-auto-updated-flash 0.75s ease-in-out 3;
+}
+
+@keyframes units-auto-updated-flash {
+    0%, 100% {
+        box-shadow: 0 0 0 0 rgba(255, 204, 0, 0);
+        background-color: transparent;
+    }
+    50% {
+        box-shadow: 0 0 0 2px rgba(255, 204, 0, 0.95);
+        background-color: rgba(255, 239, 170, 0.55);
+    }
+}
+
 /* Grade Dropdown */
 .grade-select {
     padding: 0 2.25rem 0 2.25rem;
