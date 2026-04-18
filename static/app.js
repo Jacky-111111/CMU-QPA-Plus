@@ -6,10 +6,19 @@ const SCOTTYLABS_COURSE_API_BASE = "https://course-tools.apis.scottylabs.org/cou
 let courses = [];
 let draggedElement = null;
 let draggedIndex = null;
+let dragPlaceholder = null;
+let pendingDragClientY = 0;
+let lastDragClientY = 0;
+let dragDirection = 1;
+let dragOverFrameId = null;
+let dragStartedFromHandle = false;
 const courseUnitCache = new Map(); // "15-122" -> 10
 const inFlightLookupByRow = new Map(); // rowCourseId -> normalized course id
 const recentLookupByRow = new Map(); // rowCourseId -> { courseId, ts }
 const suppressNextBlurHighlightByRow = new Map(); // rowCourseId -> boolean
+const DRAG_THRESHOLD_RATIO = 0.22;
+const DRAG_THRESHOLD_MIN = 8;
+const DRAG_THRESHOLD_MAX = 18;
 
 // DOM Elements
 const coursesContainer = document.getElementById('coursesContainer');
@@ -34,6 +43,8 @@ document.addEventListener('DOMContentLoaded', () => {
 function setupEventListeners() {
     // Add Course Button
     addCourseBtn.addEventListener('click', addNewCourse);
+    coursesContainer.addEventListener('dragover', handleDragOver);
+    coursesContainer.addEventListener('drop', handleDrop);
 
     // Dropdown Menu Buttons
     methodBtn.addEventListener('click', () => toggleDropdown('method'));
@@ -47,6 +58,9 @@ function setupEventListeners() {
             !document.getElementById('resourcesInfo').contains(e.target)) {
             closeAllDropdowns();
         }
+    });
+    document.addEventListener('mouseup', () => {
+        dragStartedFromHandle = false;
     });
 }
 
@@ -352,13 +366,16 @@ function createCourseRow(course, index) {
     // Drag Handle
     const dragHandle = document.createElement('button');
     dragHandle.className = 'action-btn drag-handle';
-    dragHandle.setAttribute('draggable', 'false');
+    dragHandle.addEventListener('mousedown', () => {
+        dragStartedFromHandle = true;
+    });
+    dragHandle.addEventListener('touchstart', () => {
+        dragStartedFromHandle = true;
+    }, { passive: true });
     row.appendChild(dragHandle);
 
     // Drag and Drop Events
     row.addEventListener('dragstart', handleDragStart);
-    row.addEventListener('dragover', handleDragOver);
-    row.addEventListener('drop', handleDrop);
     row.addEventListener('dragend', handleDragEnd);
 
     return row;
@@ -366,9 +383,33 @@ function createCourseRow(course, index) {
 
 // Drag and Drop Functions
 function handleDragStart(e) {
+    if (!dragStartedFromHandle) {
+        e.preventDefault();
+        return;
+    }
+
     draggedElement = this;
     draggedIndex = parseInt(this.dataset.index);
     this.classList.add('dragging');
+    coursesContainer.classList.add('drag-active');
+    document.body.classList.add('dragging-courses');
+
+    pendingDragClientY = e.clientY;
+    lastDragClientY = e.clientY;
+    dragDirection = 1;
+
+    dragPlaceholder = createDragPlaceholder(this);
+    if (dragPlaceholder && this.parentNode === coursesContainer) {
+        coursesContainer.insertBefore(dragPlaceholder, this.nextSibling);
+    }
+
+    // Keep native drag image while removing source element from flow.
+    window.setTimeout(() => {
+        if (draggedElement === this) {
+            this.classList.add('dragging-hidden');
+        }
+    }, 0);
+
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('text/plain', '');
     // Store the dragged course ID
@@ -379,18 +420,23 @@ function handleDragOver(e) {
     if (e.preventDefault) {
         e.preventDefault();
     }
-    e.dataTransfer.dropEffect = 'move';
-    
-    const dragging = document.querySelector('.dragging');
-    if (!dragging) return;
-    
-    const afterElement = getDragAfterElement(coursesContainer, e.clientY);
-    
-    if (afterElement == null) {
-        coursesContainer.appendChild(dragging);
-    } else {
-        coursesContainer.insertBefore(dragging, afterElement);
+    if (!draggedElement || !dragPlaceholder) {
+        return;
     }
+
+    e.dataTransfer.dropEffect = 'move';
+    pendingDragClientY = e.clientY;
+
+    if (dragOverFrameId !== null) {
+        return;
+    }
+
+    dragOverFrameId = window.requestAnimationFrame(() => {
+        dragOverFrameId = null;
+        updateDragDirection();
+        const nextElement = getDragAfterElement(coursesContainer, pendingDragClientY, dragDirection);
+        movePlaceholderWithAnimation(nextElement);
+    });
 }
 
 function handleDrop(e) {
@@ -401,47 +447,175 @@ function handleDrop(e) {
         e.preventDefault();
     }
     
-    const draggedCourseId = parseInt(e.dataTransfer.getData('courseId'));
-    const allRows = Array.from(coursesContainer.querySelectorAll('.course-row'));
-    const targetRow = this;
-    const newIndex = allRows.indexOf(targetRow);
-    
+    const draggedCourseId = parseInt(e.dataTransfer.getData('courseId'), 10);
+    const newIndex = getPlaceholderCourseIndex();
+
     if (draggedCourseId && newIndex !== -1) {
+        // Commit final DOM position immediately so drop feels continuous.
+        if (dragPlaceholder && draggedElement && dragPlaceholder.parentNode === coursesContainer) {
+            coursesContainer.insertBefore(draggedElement, dragPlaceholder);
+        }
+
         const draggedCourse = courses.find(c => c.id === draggedCourseId);
         if (draggedCourse) {
             courses = courses.filter(c => c.id !== draggedCourseId);
             courses.splice(newIndex, 0, draggedCourse);
-            renderCourses();
+            syncCourseRowIndexes();
             saveCoursesToStorage();
         }
     }
-    
+
     return false;
 }
 
 function handleDragEnd(e) {
     this.classList.remove('dragging');
+    this.classList.remove('dragging-hidden');
+    coursesContainer.classList.remove('drag-active');
+    document.body.classList.remove('dragging-courses');
+
+    if (dragOverFrameId !== null) {
+        window.cancelAnimationFrame(dragOverFrameId);
+        dragOverFrameId = null;
+    }
+
+    if (dragPlaceholder && dragPlaceholder.parentNode) {
+        dragPlaceholder.parentNode.removeChild(dragPlaceholder);
+    }
+    dragPlaceholder = null;
+
     draggedElement = null;
     draggedIndex = null;
-    
+    pendingDragClientY = 0;
+    lastDragClientY = 0;
+    dragDirection = 1;
+    dragStartedFromHandle = false;
+
     // Reset any visual changes
     const allRows = coursesContainer.querySelectorAll('.course-row');
-    allRows.forEach(row => row.classList.remove('dragging'));
+    allRows.forEach(row => {
+        row.classList.remove('dragging');
+        row.classList.remove('dragging-hidden');
+    });
 }
 
-function getDragAfterElement(container, y) {
+function getDragAfterElement(container, y, direction = 1) {
     const draggableElements = [...container.querySelectorAll('.course-row:not(.dragging)')];
-    
-    return draggableElements.reduce((closest, child) => {
-        const box = child.getBoundingClientRect();
-        const offset = y - box.top - box.height / 2;
-        
-        if (offset < 0 && offset > closest.offset) {
-            return { offset: offset, element: child };
-        } else {
-            return closest;
+
+    for (const child of draggableElements) {
+        if (child === dragPlaceholder) {
+            continue;
         }
-    }, { offset: Number.NEGATIVE_INFINITY }).element;
+
+        const box = child.getBoundingClientRect();
+        const threshold = getDragThreshold(box.height);
+        const midpoint = box.top + box.height / 2;
+        const boundary = direction >= 0 ? midpoint + threshold : midpoint - threshold;
+
+        if (y < boundary) {
+            return child;
+        }
+    }
+
+    return null;
+}
+
+function createDragPlaceholder(row) {
+    const placeholder = document.createElement('div');
+    placeholder.className = 'course-row-placeholder';
+    const rect = row.getBoundingClientRect();
+    placeholder.style.height = `${Math.max(rect.height, row.offsetHeight)}px`;
+    return placeholder;
+}
+
+function getDragThreshold(rowHeight) {
+    const computed = rowHeight * DRAG_THRESHOLD_RATIO;
+    return Math.min(DRAG_THRESHOLD_MAX, Math.max(DRAG_THRESHOLD_MIN, computed));
+}
+
+function updateDragDirection() {
+    const delta = pendingDragClientY - lastDragClientY;
+    if (Math.abs(delta) >= 1) {
+        dragDirection = delta > 0 ? 1 : -1;
+    }
+    lastDragClientY = pendingDragClientY;
+}
+
+function movePlaceholderWithAnimation(nextElement) {
+    if (!dragPlaceholder) {
+        return;
+    }
+
+    if (nextElement === dragPlaceholder) {
+        return;
+    }
+
+    const rowsToAnimate = [...coursesContainer.querySelectorAll('.course-row:not(.dragging)')];
+    const firstTopByRow = new Map(
+        rowsToAnimate.map(row => [row, row.getBoundingClientRect().top])
+    );
+
+    if (nextElement == null) {
+        coursesContainer.appendChild(dragPlaceholder);
+    } else if (nextElement !== dragPlaceholder.nextSibling) {
+        coursesContainer.insertBefore(dragPlaceholder, nextElement);
+    } else {
+        return;
+    }
+
+    rowsToAnimate.forEach((row) => {
+        const firstTop = firstTopByRow.get(row);
+        if (typeof firstTop !== 'number') {
+            return;
+        }
+
+        const lastTop = row.getBoundingClientRect().top;
+        const delta = firstTop - lastTop;
+        if (Math.abs(delta) < 0.5) {
+            return;
+        }
+
+        row.style.transition = 'none';
+        row.style.transform = `translateY(${delta}px)`;
+
+        window.requestAnimationFrame(() => {
+            row.style.transition = 'transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1)';
+            row.style.transform = '';
+
+            const cleanup = () => {
+                row.style.transition = '';
+                row.removeEventListener('transitionend', cleanup);
+            };
+            row.addEventListener('transitionend', cleanup);
+        });
+    });
+}
+
+function getPlaceholderCourseIndex() {
+    if (!dragPlaceholder || !dragPlaceholder.parentNode) {
+        return -1;
+    }
+
+    const siblings = [...coursesContainer.children];
+    const placeholderIndex = siblings.indexOf(dragPlaceholder);
+    if (placeholderIndex === -1) {
+        return -1;
+    }
+
+    const rowsBeforePlaceholder = siblings.slice(0, placeholderIndex).filter(
+        (node) => node.classList &&
+            node.classList.contains('course-row') &&
+            node !== draggedElement
+    );
+
+    return rowsBeforePlaceholder.length;
+}
+
+function syncCourseRowIndexes() {
+    const rows = coursesContainer.querySelectorAll('.course-row');
+    rows.forEach((row, index) => {
+        row.dataset.index = index;
+    });
 }
 
 // Dropdown Menu Functions
