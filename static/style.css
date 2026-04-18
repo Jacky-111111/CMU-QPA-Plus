@@ -527,6 +527,15 @@ body {
     transform: translateY(0);
 }
 
+.total-visits {
+    margin-top: 1rem;
+    min-height: 1.5rem;
+    width: 100%;
+    text-align: center;
+    color: #666666;
+    font-size: 0.95rem;
+}
+
 /* Empty State */
 .empty-state {
     text-align: center;
